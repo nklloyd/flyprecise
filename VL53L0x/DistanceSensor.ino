@@ -30,11 +30,11 @@ void setup() {
 
 
 void loop() {
-  const int samples = 32;
+  const int samples = 32; //edit # of samples for greater precision
   long total = 0;
 
   for(int i = 0; i < samples; i++) {
-    total += sensor.readRangeContinuousMillimeters();
+    total += sensor.readRangeContinuousMillimeters();  //Can use other units of measurement
     delay(10);
   }
   int averageDistance = total / samples;
