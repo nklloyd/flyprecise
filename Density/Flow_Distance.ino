@@ -97,7 +97,7 @@ void loop() {
   if(sensor.timeoutOccurred()) {
     lcd.print("Timeout");
   } else {
-    lcd.print(averageDistance);
+    lcd.print(sensor.readRangeContinuousMillimeters()); //output raw reading
     lcd.print(" mm");
   }
 
