@@ -13,7 +13,7 @@ RS DP12
 RW Ground
 E DP11
 D0-3 No Connection
-A Resistor -> Ground
+A Resistor -> 5V
 K Ground
 
 VL53L0X Pins: 
