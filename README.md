@@ -60,3 +60,7 @@ FSRs are inherently non-linear. This implementation assumes a linear relationshi
 ## Alpha Build Documentation
 * Alpha Build - https://docs.google.com/document/d/1_ZNRy5aV_9XcpFfJprM5AeEUtTBAZkFf1owPfBoO9iQ/edit?usp=sharing
 * Alpha Test Plan - https://docs.google.com/document/d/1SXkQXstxGwYJmzBSkHG-z-8G0-C6oroAPGTkn4TiCtQ/edit?usp=sharing
+
+## Beta Build Documentation
+* Beta Build - https://docs.google.com/document/d/1fs_zSv_gkhbn85_mFjjC6zrKmSh5nXOdgN2fiGV2G-g/edit?usp=sharing
+* Beta Test Plan - 
