@@ -63,4 +63,4 @@ FSRs are inherently non-linear. This implementation assumes a linear relationshi
 
 ## Beta Build Documentation
 * Beta Build - https://docs.google.com/document/d/1fs_zSv_gkhbn85_mFjjC6zrKmSh5nXOdgN2fiGV2G-g/edit?usp=sharing
-* Beta Test Plan - 
+* Beta Test Plan - https://docs.google.com/document/d/1E2wE4QuUsBIM2U0-oblOg121ZjWiWZ_3sDpITYq9rYI/edit?tab=t.0
