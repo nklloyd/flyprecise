@@ -58,6 +58,7 @@ void setup() {
   pinMode(mosfetPin6, OUTPUT);
   pinMode(mosfetPin9, OUTPUT);
   pinMode(mosfetPin10, OUTPUT);
+  Serial.begin(9600);
 
   lcd.begin(16, 2);
   lcd.print("Starting sensor");
