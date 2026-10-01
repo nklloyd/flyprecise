@@ -132,6 +132,23 @@ void loop() {
   if (Serial.available() > 0) {
     char userInput = Serial.read(); 
 
+    if (userInput == 'S') {
+      pumpState = !pumpState; 
+      bypassState = !bypassState; 
+      analogWrite(mosfetPin6, pumpState ? 255 : 0);
+      analogWrite(mosfetPin9, bypassState ? 255 : 0);
+      Serial.println(pumpState ? "Turning on pump" : "Turning off pump");
+      Serial.println(bypassState ? "Opening Bypass" : "Closing Bypass");
+      delay(10000);
+      bypassState = !bypassState; 
+      analogWrite(mosfetPin9, bypassState ? 255 : 0);
+      Serial.println(bypassState ? "Opening Bypass" : "Closing Bypass");
+      delay(150);
+      mainlineState = !mainlineState; 
+      analogWrite(mosfetPin10, mainlineState ? 255 : 0);
+      Serial.println(mainlineState ? "Opening Mainline" : "Closing Mainline");
+    }
+
     if (userInput == 'P') {
       pumpState = !pumpState; 
       analogWrite(mosfetPin6, pumpState ? 255 : 0);
