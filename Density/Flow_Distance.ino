@@ -111,8 +111,8 @@ void loop() {
   totalMilliLitres += flowMilliLitres;
   unsigned int frac;
 
-  lcd.print("Flow rate: ") ;
-  lcd.print(int(flowRate));
+  lcd.print("Milliliters: ") ;
+  lcd.print(int(totalMilliliters));
 
   pulseCount = 0;
   attachInterrupt(sensorInterrupt, pulseCounter, FALLING);
