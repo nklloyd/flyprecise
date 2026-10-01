@@ -44,9 +44,21 @@ unsigned long totalMilliLitres;
 
 unsigned long oldTime;
 
+//pwm setup
+const int mosfetPin6 = 6; //pump
+const int mosfetPin9 = 9; //bypass
+const int mosfetPin10 = 10; //mainline ouput
+bool pumpState = false;
+bool bypassState = false;
+bool mainlineState = false;
+
 
 void setup() {
   // put your setup code here, to run once:
+  pinMode(mosfetPin6, OUTPUT);
+  pinMode(mosfetPin9, OUTPUT);
+  pinMode(mosfetPin10, OUTPUT);
+
   lcd.begin(16, 2);
   lcd.print("Starting sensor");
 
@@ -112,15 +124,38 @@ void loop() {
   unsigned int frac;
 
   lcd.print("Milliliters: ") ;
-  lcd.print(int(totalMilliliters));
+  lcd.print(int(totalMilliLitres));
 
   pulseCount = 0;
   attachInterrupt(sensorInterrupt, pulseCounter, FALLING);
+
+  if (Serial.available() > 0) {
+    char userInput = Serial.read(); 
+
+    if (userInput == 'P') {
+      pumpState = !pumpState; 
+      analogWrite(mosfetPin6, pumpState ? 255 : 0);
+      Serial.println(pumpState ? "Turning on pump" : "Turning off pump");
+    }
+    
+    // Toggle Bypass
+    else if (userInput == 'B') {
+      bypassState = !bypassState; 
+      analogWrite(mosfetPin9, bypassState ? 255 : 0);
+      Serial.println(bypassState ? "Opening Bypass" : "Closing Bypass");
+    }
+    
+    // Toggle Mainline
+    else if (userInput == 'M') {
+      mainlineState = !mainlineState; 
+      analogWrite(mosfetPin10, mainlineState ? 255 : 0);
+      Serial.println(mainlineState ? "Opening Mainline" : "Closing Mainline");
+    }
   //delay(1000);
   }
 }
-
-void pulseCounter() {
-  pulseCount++;
 }
 
+  void pulseCounter() {
+    pulseCount++;
+  }
