@@ -59,7 +59,6 @@ enum Phase { IDLE, PRIMING, OVERLAP, RUNNING };
 Phase phase = IDLE;
 unsigned long phaseStartedAt = 0;
 
-// Rolling average of the last 32 successful distance readings.
 uint16_t rawDistance = 0;
 bool distanceTimedOut = false;
 
