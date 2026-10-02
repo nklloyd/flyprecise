@@ -26,6 +26,11 @@ FLOW Meter Pins:
 5V
 GND
 Yellow DP2
+
+MOSFETS:
+Pump - DP6
+Bypass Line - DP9
+Mainline - DP10
 */
 VL53L0X sensor;
 
