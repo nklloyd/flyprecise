@@ -3,6 +3,30 @@
 #include <VL53L0X.h>
 
 LiquidCrystal lcd(12, 11, 5, 4, 3, 8);
+//LCD D4-7 are Digital Pins 5,4,3, and 8 respectively
+/*
+LCD Pins:
+VSS Ground
+VDD 5V
+V0 Potentiometer
+RS DP12
+RW Ground
+E DP11
+D0-3 No Connection
+A Resistor -> 5V
+K Ground
+
+VL53L0X Pins: 
+5V
+GND
+SCL Analog 5
+SDA Analog 4
+
+FLOW Meter Pins: 
+5V
+GND
+Yellow DP2
+*/
 VL53L0X sensor;
 
 const byte flowPin = 2;
