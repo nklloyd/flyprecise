@@ -44,11 +44,24 @@ unsigned long totalMilliLitres;
 
 unsigned long oldTime;
 
+//pwm setup
+const int mosfetPin6 = 6; //pump
+const int mosfetPin9 = 9; //bypass
+const int mosfetPin10 = 10; //mainline ouput
+bool pumpState = false;
+bool bypassState = false;
+bool mainlineState = false;
+
 
 void setup() {
   // put your setup code here, to run once:
+  pinMode(mosfetPin6, OUTPUT);
+  pinMode(mosfetPin9, OUTPUT);
+  pinMode(mosfetPin10, OUTPUT);
+
   lcd.begin(16, 2);
   lcd.print("Starting sensor");
+  Serial.begin(9600);
 
   Wire.begin();
 
@@ -82,13 +95,56 @@ void setup() {
 void loop() {
   const int samples = 32;
   long total = 0;
+  //Serial.print("test");
+  if (Serial.available() > 0) {
+    char userInput = Serial.read(); 
+
+    if (userInput == 'S') {
+      pumpState = !pumpState; 
+      bypassState = !bypassState; 
+      analogWrite(mosfetPin6, pumpState ? 255 : 0);
+      analogWrite(mosfetPin9, bypassState ? 255 : 0);
+      Serial.println(pumpState ? "Turning on pump" : "Turning off pump");
+      Serial.println(bypassState ? "Opening Bypass" : "Closing Bypass");
+      delay(10000);
+      bypassState = !bypassState; 
+      analogWrite(mosfetPin9, bypassState ? 255 : 0);
+      Serial.println(bypassState ? "Opening Bypass" : "Closing Bypass");
+      delay(150);
+      mainlineState = !mainlineState; 
+      analogWrite(mosfetPin10, mainlineState ? 255 : 0);
+      Serial.println(mainlineState ? "Opening Mainline" : "Closing Mainline");
+    }
+
+    if (userInput == 'T') {
+      pumpState = !pumpState; 
+      analogWrite(mosfetPin6, pumpState ? 255 : 0);
+      Serial.println(pumpState ? "Turning on pump" : "Turning off pump");
+    }
+    
+    // Toggle Bypass
+    if (userInput == 'B') {
+      bypassState = !bypassState; 
+      analogWrite(mosfetPin9, bypassState ? 255 : 0);
+      Serial.println(bypassState ? "Opening Bypass" : "Closing Bypass");
+    }
+    
+    // Toggle Mainline
+    if (userInput == 'M') {
+      mainlineState = !mainlineState; 
+      analogWrite(mosfetPin10, mainlineState ? 255 : 0);
+      Serial.println(mainlineState ? "Opening Mainline" : "Closing Mainline");
+    }
+  //delay(1000);
+  }
 
   for(int i = 0; i < samples; i++) {
     total += sensor.readRangeContinuousMillimeters();
     delay(10);
   }
   int averageDistance = total / samples;
-
+  lcd.setCursor(0,0);
+  lcd.print("                ");
   lcd.setCursor(0,0);
   lcd.print("Distance: ");
 
@@ -111,16 +167,17 @@ void loop() {
   totalMilliLitres += flowMilliLitres;
   unsigned int frac;
 
-  lcd.print("Flow rate: ") ;
-  lcd.print(int(flowRate));
+  lcd.print("Milliliters: ") ;
+  lcd.print(int(totalMilliLitres));
 
   pulseCount = 0;
   attachInterrupt(sensorInterrupt, pulseCounter, FALLING);
-  //delay(1000);
   }
+
+  
+
 }
 
-void pulseCounter() {
-  pulseCount++;
-}
-
+  void pulseCounter() {
+    pulseCount++;
+  }
