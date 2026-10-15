@@ -39,7 +39,7 @@ const byte pumpPin = 6;
 const byte bypassPin = 9;
 const byte mainlinePin = 10;
 
-const float calibrationFactor = 7.9f;
+const float calibrationFactor = 17.0f;
 const unsigned long flowPeriodMs = 1000;
 const unsigned long primeTimeMs = 10000;
 const unsigned long overlapTimeMs = 150;
@@ -51,6 +51,9 @@ unsigned long lastDisplayTime = 0;
 unsigned long totalMilliLitres = 0;
 unsigned long totalGrams = 0;
 float fractionalMilliLitres = 0;
+
+float targetkg = 3.0; // Future input
+unsigned long currentkg = 0.0;
 
 bool pumpState = false;
 bool bypassState = false;
@@ -101,6 +104,26 @@ void stopSystem() {
   setBypass(false);
 }
 
+// void handleCommand() {
+//   if (Serial.available() == 0) return;
+
+//   char command = Serial.read();
+
+//   if (command == 'S') {
+//     if (pumpState) stopSystem();
+//     else startSystem();
+//   } else if (command == 'P') {
+//     phase = IDLE;  // Manual command cancels the automatic sequence.
+//     setPump(!pumpState);
+//   } else if (command == 'B') {
+//     phase = IDLE;
+//     setBypass(!bypassState);
+//   } else if (command == 'M') {
+//     phase = IDLE;
+//     setMainline(!mainlineState);
+//   }
+// }
+
 void handleCommand() {
   if (Serial.available() == 0) return;
 
@@ -108,7 +131,6 @@ void handleCommand() {
 
   if (command == 'S') {
     if (pumpState) stopSystem();
-    else startSystem();
   } else if (command == 'P') {
     phase = IDLE;  // Manual command cancels the automatic sequence.
     setPump(!pumpState);
@@ -118,6 +140,17 @@ void handleCommand() {
   } else if (command == 'M') {
     phase = IDLE;
     setMainline(!mainlineState);
+  } else if (command == 'R') {
+    if (!pumpState) {
+      while(Serial.available() > 0) {
+        Serial.read(); // Flush input buffer
+      }
+      Serial.println("Enter target fuel in kg:");
+      while(Serial.available() == 0) {}
+      targetkg = (Serial.parseFloat()*1.0);
+      Serial.println(targetkg);
+      startSystem();
+    }
   }
 }
 
@@ -135,8 +168,9 @@ void updateSequence() {
     phase = RUNNING;
   }
 
-  if(totalGrams >= 3000-20) {
+  if(totalGrams >= (targetkg + currentkg) - 50) {
     stopSystem();
+    currentkg = totalGrams;
   }
 }
 
@@ -167,8 +201,13 @@ void updateFlow() {
 }
 
 void updateDistance() {
+  Serial.println("START DISTANCE UPDATE");
   rawDistance = sensor.readRangeContinuousMillimeters();
+  Serial.println(rawDistance);
   distanceTimedOut = sensor.timeoutOccurred();
+  if (distanceTimedOut) {
+    Serial.println("***DISTANCE TIMEOUT OCCURRED***");
+  }
 }
 
 // void updateDisplay() {
@@ -262,6 +301,7 @@ void loop() {
   Serial.println("SEQUENCE UPDATED");
   updateFlow();
   Serial.println("FLOW UPDATED");
+  Serial.println(targetkg);
   updateDistance();
   Serial.println("DISTANCE UPDATED");
   updateDisplay();
