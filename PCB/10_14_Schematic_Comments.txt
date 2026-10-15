@@ -1,0 +1,8 @@
+Schematic Comments (because KiCAD doesn't have a comment feature):
+1. Too many wires crossing and jumping over each other. Use net labels for as much as possible, and only actually connect things using wires if it makes it easier to read. The goal of a schematic is to be easy to read.
+1a. GND net symbols/labels should be everywhere, instead of having the nest of connected GND wires. GNDs should never be connected like that, they should always just go to a net symbol/label. The only time they should be connected together to one net symbol/label is if they're right next to each other, like pins 6 and 7 on J1.
+1b. Same thing with power rails. Honestly if you just use net symbols for all power rails and GNDs, you could probably leave all the other wires you used.
+2. (nitpicky) I might put 'D' in front of all the digital pins just to more easily know what those are.
+3. somewhat along the lines of the previous point, it may be worth labelling these nets with what they do in our system, rather than what their pins are on the Arduino. i.e., instead of '12', you label that net "LCD_Reset" or something like that. This also helps you with point #1, as this will make it easy to see what pin on J2 the LCD Reset goes to. I think it's important to have the Arduino pin labels near this as well though, so maybe having a textbox next to the connector with the corresponding pins lined up there would be good.
+4. I know it's probably a good practice to some extent to have the power rails (VCC, +5V, +3V3) pointed upward like that on J1, but I think that gets defeated if it crosses other wires. I would just have them point out to the left.
+5. "R_Potentiometer_Trim" shouldn't overlap with things the way it is.
