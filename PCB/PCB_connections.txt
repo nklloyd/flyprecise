@@ -20,9 +20,21 @@ Power Supply
  - CH1
  - CH2
  - GND
+ - GND
 EPS32
  - header sockets (kinda like Arduino jawn)
 Screen (LCD or OLED)
- - I2C and power/gnd
+ - 
+ - 
+ - 
+ - 
+ - 
+ - 
+ - 
+ - 
+ - 
+ - 
+ - 
+ - 
 Touchpad
  - 8 digital inputs
