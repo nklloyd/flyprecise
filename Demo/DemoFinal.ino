@@ -1,3 +1,5 @@
+#include <splash.h>
+#include "matrix_keyboard.h"
 #include <LiquidCrystal.h>
 #include <Wire.h>
 #include <VL53L0X.h>
@@ -33,6 +35,7 @@ Bypass Line - DP9
 Mainline - DP10
 */
 VL53L0X sensor;
+MatrixKeyboard key_board(0x65);
 
 const byte flowPin = 2;
 const byte pumpPin = 6;
@@ -52,7 +55,7 @@ unsigned long totalMilliLitres = 0;
 unsigned long totalGrams = 0;
 float fractionalMilliLitres = 0;
 
-float targetkg = 3.0; // Future input
+float targetkg = 0.0; // Future input
 unsigned long currentkg = 0.0;
 
 bool pumpState = false;
@@ -73,19 +76,19 @@ void pulseCounter() {
 void setPump(bool on) {
   pumpState = on;
   digitalWrite(pumpPin, on ? HIGH : LOW);
-  Serial.println(on ? "Turning on pump" : "Turning off pump");
+  //Serial.println(on ? "Turning on pump" : "Turning off pump");
 }
 
 void setBypass(bool open) {
   bypassState = open;
   digitalWrite(bypassPin, open ? HIGH : LOW);
-  Serial.println(open ? "Opening Bypass" : "Closing Bypass");
+  //Serial.println(open ? "Opening Bypass" : "Closing Bypass");
 }
 
 void setMainline(bool open) {
   mainlineState = open;
   digitalWrite(mainlinePin, open ? HIGH : LOW);
-  Serial.println(open ? "Opening Mainline" : "Closing Mainline");
+  //Serial.println(open ? "Opening Mainline" : "Closing Mainline");
 }
 
 void startSystem() {
@@ -111,7 +114,6 @@ void stopSystem() {
 
 //   if (command == 'S') {
 //     if (pumpState) stopSystem();
-//     else startSystem();
 //   } else if (command == 'P') {
 //     phase = IDLE;  // Manual command cancels the automatic sequence.
 //     setPump(!pumpState);
@@ -121,36 +123,75 @@ void stopSystem() {
 //   } else if (command == 'M') {
 //     phase = IDLE;
 //     setMainline(!mainlineState);
+//   } else if (command == 'R') {
+//     if (!pumpState) {
+//       while(Serial.available() > 0) {
+//         Serial.read(); // Flush input buffer
+//       }
+//       inputDisplay(targetkg);
+//       //Serial.println("Enter target fuel in kg:");
+      
+//       // while(Serial.available() == 0) {}
+//       // targetkg = (Serial.parseFloat()*1.0);
+
+//       char key = "Z";
+//       while (key != "#") {
+//         key = key_board.GetTouchedKey();
+//         if (key != '\0') {
+//           Serial.print(key);
+//         }
+//       }
+
+//       inputDisplay(targetkg);
+//       //Serial.println(targetkg);
+//       delay(3000);
+//       startSystem();
+//     }
 //   }
 // }
 
-void handleCommand() {
-  if (Serial.available() == 0) return;
+void handleCommand(char command) {
 
-  char command = Serial.read();
-
-  if (command == 'S') {
-    if (pumpState) stopSystem();
-  } else if (command == 'P') {
-    phase = IDLE;  // Manual command cancels the automatic sequence.
+  if (command == 'B') { // Toggle Bilge Pump
+    phase = IDLE; 
     setPump(!pumpState);
-  } else if (command == 'B') {
+  } else if (command == 'D') { // Toggle Density line
     phase = IDLE;
     setBypass(!bypassState);
-  } else if (command == 'M') {
+  } else if (command == 'C') { // Toggle clearway output
     phase = IDLE;
     setMainline(!mainlineState);
-  } else if (command == 'R') {
+  } else if (command == 'A') {
+    if (pumpState) stopSystem();
     if (!pumpState) {
       while(Serial.available() > 0) {
         Serial.read(); // Flush input buffer
       }
-      Serial.println("Enter target fuel in kg:");
-      while(Serial.available() == 0) {}
-      targetkg = (Serial.parseFloat()*1.0);
+      inputDisplay(targetkg);
+
+      char key = 'Z';
+      while (key != '#') {
+        key = key_board.GetTouchedKey();
+        if (key == '0' || key == '1' || key == '2' || key == '3' || key == '4'
+         || key == '5' || key == '6' || key == '7' || key == '8' || key == '9') {
+          int kg_inc = key - '0';
+          targetkg = (targetkg*10) + kg_inc;
+          if (key != '\0') {
+            Serial.print(key);
+          }
+        }
+      }
+      Serial.println();
+      Serial.print("Target KG = ");
       Serial.println(targetkg);
+
+      inputDisplay(targetkg);
+      //Serial.println(targetkg);
+      delay(3000);
       startSystem();
     }
+  } else {
+    return;
   }
 }
 
@@ -201,38 +242,53 @@ void updateFlow() {
 }
 
 void updateDistance() {
-  Serial.println("START DISTANCE UPDATE");
+  //Serial.println("START DISTANCE UPDATE");
   rawDistance = sensor.readRangeContinuousMillimeters();
-  Serial.println(rawDistance);
+  //Serial.println(rawDistance);
   distanceTimedOut = sensor.timeoutOccurred();
   if (distanceTimedOut) {
-    Serial.println("***DISTANCE TIMEOUT OCCURRED***");
+    //Serial.println("***DISTANCE TIMEOUT OCCURRED***");
   }
 }
 
-// void updateDisplay() {
-//   unsigned long now = millis();
-//   if (now - lastDisplayTime < 250) return;
-//   lastDisplayTime = now;
+void welcomeDisplay() {
+  unsigned long now = millis();
+  // if (now - lastDisplayTime < 250) return;
+  // lastDisplayTime = now;
 
-//   lcd.setCursor(0, 0);
-//   lcd.print("                ");
-//   lcd.setCursor(0, 0);
+  lcd.setCursor(0, 0);
+  lcd.print("                ");
+  lcd.setCursor(0, 0);
 
-//   if (distanceTimedOut) {
-//     lcd.print("Dist: Timeout");
-//   } else {
-//     lcd.print("Dist: ");
-//     lcd.print(rawDistance);
-//     lcd.print(" mm");
-//   }
+  lcd.print("SELECT OPTION:");
 
-//   lcd.setCursor(0, 1);
-//   lcd.print("                ");
-//   lcd.setCursor(0, 1);
-//   lcd.print("mL: ");
-//   lcd.print(totalMilliLitres);
-// }
+  lcd.setCursor(0, 1);
+  lcd.print("                ");
+  lcd.setCursor(0, 1);
+  lcd.print("S P B M R");
+}
+
+void inputDisplay(float kg) {
+  unsigned long now = millis();
+  // if (now - lastDisplayTime < 250) return;
+  // lastDisplayTime = now;
+
+  lcd.setCursor(0, 0);
+  lcd.print("                ");
+  lcd.setCursor(0, 0);
+
+  lcd.print("ENTER KG TO FUEL");
+
+  lcd.setCursor(0, 1);
+  lcd.print("                ");
+  lcd.setCursor(0, 1);
+  lcd.print("kg: ");
+  if(kg > 0) {
+    lcd.print(kg*1.0, 2);
+  } else {
+    lcd.print("----");
+  }
+}
 
 void updateDisplay() {
   unsigned long now = millis();
@@ -258,6 +314,8 @@ void updateDisplay() {
   lcd.print("kg: ");
   if(!bypassState && mainlineState || !pumpState) {
     lcd.print(totalGrams*0.001, 2);
+    lcd.print("/");
+    lcd.print(targetkg);
   } else {
     lcd.print("----");
   }
@@ -278,6 +336,8 @@ void setup() {
 
   Serial.begin(9600);
   Wire.begin();
+  key_board.Setup();
+  Serial.println("Keyboard setup done");
 
   sensor.setTimeout(500);
   if (!sensor.init()) {
@@ -293,17 +353,31 @@ void setup() {
   lcd.clear();
 }
 
+// void loop() {
+//   const char key = key_board.GetTouchedKey();
+ 
+//   if (key != '\0') {
+//     Serial.println(key);
+//   }
+// }
+
 void loop() {
-  Serial.println("LOOP BEGAN");
-  handleCommand();
-  Serial.println("COMMAND UPDATED");
+  char key = key_board.GetTouchedKey();
+  if (key != '\0') { Serial.println(key); }
+  //Serial.println("LOOP BEGAN");
+  handleCommand(key);
+  //Serial.println("COMMAND UPDATED");
   updateSequence();
-  Serial.println("SEQUENCE UPDATED");
+  //Serial.println("SEQUENCE UPDATED");
   updateFlow();
-  Serial.println("FLOW UPDATED");
-  Serial.println(targetkg);
+  //Serial.println("FLOW UPDATED");
+  //Serial.println(targetkg);
   updateDistance();
-  Serial.println("DISTANCE UPDATED");
-  updateDisplay();
-  Serial.println("DISPLAY UPDATED");
+  //Serial.println("DISTANCE UPDATED");
+  if(targetkg == 0) {
+    welcomeDisplay();
+  } else {
+    updateDisplay();
+  }
+  //Serial.println("DISPLAY UPDATED");
 }
