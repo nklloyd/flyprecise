@@ -158,9 +158,11 @@ void handleCommand(char command) {
   } else if (command == 'D') { // Toggle Density line
     phase = IDLE;
     setBypass(!bypassState);
+    Serial.println("density");
   } else if (command == 'C') { // Toggle clearway output
     phase = IDLE;
     setMainline(!mainlineState);
+    Serial.println("clearway");
   } else if (command == 'A') {
     if (pumpState) stopSystem();
     if (!pumpState) {
@@ -179,6 +181,7 @@ void handleCommand(char command) {
           if (key != '\0') {
             Serial.print(key);
           }
+          inputDisplay(targetkg);
         }
       }
       Serial.println();
@@ -201,16 +204,20 @@ void updateSequence() {
   if (phase == PRIMING &&
       now - phaseStartedAt >= primeTimeMs) {
     setMainline(true);
+    Serial.println("MAINLINE ON");
     phase = OVERLAP;
     phaseStartedAt = now;
   } else if (phase == OVERLAP &&
              now - phaseStartedAt >= overlapTimeMs) {
     setBypass(false);
+    Serial.println("BYPASS OFF");
     phase = RUNNING;
   }
 
-  if(totalGrams >= (targetkg + currentkg) - 50) {
+  if((totalGrams >= ((targetkg + currentkg)*1000 - 3900)) && (targetkg > 0)) {
     stopSystem();
+    Serial.print(totalGrams);
+    Serial.println("STOP");
     currentkg = totalGrams;
   }
 }
@@ -236,7 +243,7 @@ void updateFlow() {
       (flowRateLpm * elapsedMs / 60.0f) + fractionalMilliLitres;
 
   unsigned long wholeMl = (unsigned long)intervalMl;
-  totalMilliLitres += wholeMl*10; // CHANGE LATER: Scaled up by 10 for demo purposes
+  totalMilliLitres += wholeMl*100; // CHANGE LATER: Scaled up by 10 for demo purposes
   fractionalMilliLitres = intervalMl - wholeMl;
   totalGrams = totalMilliLitres*1.02;
 }
@@ -253,8 +260,8 @@ void updateDistance() {
 
 void welcomeDisplay() {
   unsigned long now = millis();
-  // if (now - lastDisplayTime < 250) return;
-  // lastDisplayTime = now;
+  if (now - lastDisplayTime < 250) return;
+  lastDisplayTime = now;
 
   lcd.setCursor(0, 0);
   lcd.print("                ");
@@ -270,8 +277,8 @@ void welcomeDisplay() {
 
 void inputDisplay(float kg) {
   unsigned long now = millis();
-  // if (now - lastDisplayTime < 250) return;
-  // lastDisplayTime = now;
+  //if (now - lastDisplayTime < 250) return;
+  lastDisplayTime = now;
 
   lcd.setCursor(0, 0);
   lcd.print("                ");
