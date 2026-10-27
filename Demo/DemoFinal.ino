@@ -236,7 +236,7 @@ void updateFlow() {
       (flowRateLpm * elapsedMs / 60.0f) + fractionalMilliLitres;
 
   unsigned long wholeMl = (unsigned long)intervalMl;
-  totalMilliLitres += wholeMl;
+  totalMilliLitres += wholeMl*10; // CHANGE LATER: Scaled up by 10 for demo purposes
   fractionalMilliLitres = intervalMl - wholeMl;
   totalGrams = totalMilliLitres*1.02;
 }
@@ -265,7 +265,7 @@ void welcomeDisplay() {
   lcd.setCursor(0, 1);
   lcd.print("                ");
   lcd.setCursor(0, 1);
-  lcd.print("S P B M R");
+  lcd.print("A B C D");
 }
 
 void inputDisplay(float kg) {
@@ -284,7 +284,7 @@ void inputDisplay(float kg) {
   lcd.setCursor(0, 1);
   lcd.print("kg: ");
   if(kg > 0) {
-    lcd.print(kg*1.0, 2);
+    lcd.print(kg*1.0, 0);
   } else {
     lcd.print("----");
   }
@@ -306,18 +306,20 @@ void updateDisplay() {
     lcd.print("----");
   }
   lcd.print("  L: ");
-  lcd.print(totalMilliLitres*0.001, 2);
+  lcd.print(totalMilliLitres*0.001, 0);
 
   lcd.setCursor(0, 1);
   lcd.print("                ");
   lcd.setCursor(0, 1);
   lcd.print("kg: ");
   if(!bypassState && mainlineState || !pumpState) {
-    lcd.print(totalGrams*0.001, 2);
+    lcd.print(totalGrams*0.001, 0);
     lcd.print("/");
-    lcd.print(targetkg);
+    lcd.print(targetkg, 0);
   } else {
     lcd.print("----");
+    lcd.print("/");
+    lcd.print(targetkg, 0);
   }
 }
 
