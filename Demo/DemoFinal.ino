@@ -182,6 +182,12 @@ void handleCommand(char command) {
             Serial.print(key);
           }
           inputDisplay(targetkg);
+          delay(100); // Delay to prevent double taps
+        } else if (key == '*') {
+          int kg_dec = (int)targetkg % 10;
+          targetkg = (targetkg - kg_dec) / 10;
+          inputDisplay(targetkg);
+          delay(100); // Delay to prevent double taps
         }
       }
       Serial.println();
