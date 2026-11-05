@@ -6,7 +6,7 @@ Adafruit_VL53L0X sensor;
 
 const float TIP_TO_SENSOR_MM = 171.63f;
 
-// EXAMPLE DATA ONLY: replace both arrays with your measured table.
+
 // Entries at the same position must correspond to each other.
 const float tipDistanceMM[] = {
   53.89, 57.80, 61.57, 66.72, 72.69,
