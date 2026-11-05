@@ -1,0 +1,41 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+
+const char* ssid = "SerioX";
+const char* password = "testpass";
+const char* serverUrl = "http://192.168.1.50:3000/api/fuel"; // your PC's IP
+
+bool postFuelData(float targetKg, float currentKg, float liters, bool pump, bool bypass, bool mainline) {
+  if (WiFi.status() != WL_CONNECTED) return false;
+
+  HTTPClient http;
+  http.begin(serverUrl);
+  http.addHeader("Content-Type", "application/json");
+
+  String body = "{";
+  body += "\"targetKg\":" + String(targetKg, 1) + ",";
+  body += "\"currentKg\":" + String(currentKg, 1) + ",";
+  body += "\"liters\":" + String(liters, 1) + ",";
+  body += "\"pump\":" + String(pump ? "true" : "false") + ",";
+  body += "\"bypass\":" + String(bypass ? "true" : "false") + ",";
+  body += "\"mainline\":" + String(mainline ? "true" : "false");
+  body += "}";
+
+  int code = http.POST(body);
+  Serial.printf("POST -> %d\n", code);
+  http.end();
+  return code > 0 && code < 300;
+}
+
+void setup() {
+  Serial.begin(115200);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
+  Serial.println("\nConnected: " + WiFi.localIP().toString());
+}
+
+void loop() {
+  postFuelData(50, 12.4, 12.1, true, false, true); // replace with real values
+  delay(2000);
+}
