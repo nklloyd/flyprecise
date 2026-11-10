@@ -1,0 +1,18 @@
+#######################################
+# Classes, datatypes (KEYWORD1)
+#######################################
+
+MatrixKeyboard	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+Setup	KEYWORD2
+GetTouchedKey	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+kDeviceI2cAddressDefault	LITERAL1
