@@ -2,7 +2,7 @@
 #include "matrix_keyboard.h"
 #include <LiquidCrystal.h>
 #include <Wire.h>
-#include <VL53L0X.h>
+#include <Adafruit_VL53L0X.h>
 
 LiquidCrystal lcd(12, 11, 5, 4, 3, 8);
 //LCD D4-7 are Digital Pins 5,4,3, and 8 respectively
@@ -34,13 +34,39 @@ Pump - DP6
 Bypass Line - DP9
 Mainline - DP10
 */
-VL53L0X sensor;
+Adafruit_VL53L0X sensor;
 MatrixKeyboard key_board(0x65);
 
 const byte flowPin = 2;
 const byte pumpPin = 6;
 const byte bypassPin = 9;
 const byte mainlinePin = 10;
+
+const float TIP_TO_SENSOR_MM = 170.78f;
+// Entries at the same position must correspond to each other.
+const float tipDistanceMM[] = {
+  53.89, 57.80, 61.57, 66.72, 72.69,
+  78.89, 83.49, 87.10, 90.27, 94.96,
+  98.31, 101.88, 106.24, 109.43, 112.62
+};
+// const float density[] = {
+//   1.090, 1.084, 1.078, 1.070, 1.064,
+//   1.058, 1.050, 1.044, 1.038, 1.030,
+//   1.020, 1.010, 1.002, 0.996, 0.990
+// };
+const float density[] = {
+  0.990, 0.996, 1.002, 1.010, 1.020,
+  1.030, 1.038, 1.044, 1.050, 1.058,
+  1.064, 1.070, 1.078, 1.084, 1.090
+};
+//const size_t STABLE_COUNT = 10;
+const float MAX_DENSITY_SPREAD = 0.004f;
+float recentDensities[3];
+size_t readingCount = 0;
+size_t nextIndex = 0;
+bool densityLocked = false;
+float lockedDensity = 0.0f;
+const size_t POINT_COUNT = sizeof(tipDistanceMM) / sizeof(tipDistanceMM[0]);
 
 const float calibrationFactor = 17.0f;
 const unsigned long flowPeriodMs = 1000;
@@ -68,6 +94,27 @@ unsigned long phaseStartedAt = 0;
 
 uint16_t rawDistance = 0;
 bool distanceTimedOut = false;
+
+bool interpolateDensity(float distanceFromTip, float &result) {
+  // Do not estimate beyond the calibrated range.
+  if (distanceFromTip < tipDistanceMM[0] ||
+      distanceFromTip > tipDistanceMM[POINT_COUNT - 1]) {
+    return false;
+  }
+
+  for (size_t i = 0; i < POINT_COUNT - 1; i++) {
+    if (distanceFromTip <= tipDistanceMM[i + 1]) {
+      float fraction = (distanceFromTip - tipDistanceMM[i]) /
+                       (tipDistanceMM[i + 1] - tipDistanceMM[i]);
+
+      result = density[i] +
+               fraction * (density[i + 1] - density[i]);
+      return true;
+    }
+  }
+
+  return false;
+}
 
 void pulseCounter() {
   pulseCount++;
@@ -209,8 +256,14 @@ void updateSequence() {
 
   if (phase == PRIMING &&
       now - phaseStartedAt >= primeTimeMs) {
+    setBypass(false);
+    Serial.println("BYPASS OFF");
     setMainline(true);
     Serial.println("MAINLINE ON");
+    while (!densityLocked) {
+      updateDensity();
+    }
+    Serial.println("DONE DENSITY UPDATE");
     phase = OVERLAP;
     phaseStartedAt = now;
   } else if (phase == OVERLAP &&
@@ -226,6 +279,69 @@ void updateSequence() {
     Serial.println("STOP");
     currentkg = totalGrams;
   }
+}
+
+void updateDensity() {
+  Serial.println("BEGAN DENSITY UPDATE");
+  if (densityLocked) {
+    return;  // Keep the locked value until the Arduino is reset.
+  }
+
+  VL53L0X_RangingMeasurementData_t measurement;
+  sensor.rangingTest(&measurement, false);
+
+  if (measurement.RangeStatus != 0) {
+    delay(500);
+    return;  // Skip an occasional invalid sensor reading.
+    Serial.println("INVALID SENSOR READING: ");
+    //Serial.println(measurement, 2);
+  }
+
+  float distanceFromTipMM =
+      TIP_TO_SENSOR_MM - measurement.RangeMilliMeter;
+
+  float currentDensity;
+  if (!interpolateDensity(distanceFromTipMM, currentDensity)) {
+    readingCount = 0;  // Start a fresh window after an out-of-range reading.
+    nextIndex = 0;
+    //Serial.println("OUT OF RANGE: ");
+    Serial.println(distanceFromTipMM, 2);
+    delay(500);
+    return;
+  }
+
+  Serial.print("Current density: ");
+  Serial.println(currentDensity, 4);
+
+  recentDensities[nextIndex] = currentDensity;
+  nextIndex = (nextIndex + 1) % 3;
+
+  if (readingCount < 3) {
+    readingCount++;
+  }
+
+  if (readingCount == 3) {
+    float minimum = recentDensities[0];
+    float maximum = recentDensities[0];
+    float sum = 0.0f;
+
+    for (size_t i = 0; i < 3; i++) {
+      if (recentDensities[i] < minimum) minimum = recentDensities[i];
+      if (recentDensities[i] > maximum) maximum = recentDensities[i];
+      sum += recentDensities[i];
+    }
+
+    if (maximum - minimum <= MAX_DENSITY_SPREAD) {
+      lockedDensity = sum / 3;
+      densityLocked = true;
+
+      Serial.print("LOCKED density: ");
+      Serial.println(lockedDensity, 4);
+    }
+    lockedDensity = currentDensity; // REMOVE
+  }
+
+  delay(500);
 }
 
 void updateFlow() {
@@ -251,18 +367,19 @@ void updateFlow() {
   unsigned long wholeMl = (unsigned long)intervalMl;
   totalMilliLitres += wholeMl*100; // CHANGE LATER: Scaled up by 10 for demo purposes
   fractionalMilliLitres = intervalMl - wholeMl;
-  totalGrams = totalMilliLitres*1.02;
+  //totalGrams = totalMilliLitres*1.02;
+  totalGrams = totalMilliLitres*lockedDensity;
 }
 
-void updateDistance() {
-  //Serial.println("START DISTANCE UPDATE");
-  rawDistance = sensor.readRangeContinuousMillimeters();
-  //Serial.println(rawDistance);
-  distanceTimedOut = sensor.timeoutOccurred();
-  if (distanceTimedOut) {
-    //Serial.println("***DISTANCE TIMEOUT OCCURRED***");
-  }
-}
+// void updateDistance() {
+//   //Serial.println("START DISTANCE UPDATE");
+//   rawDistance = sensor.readRangeContinuousMillimeters();
+//   //Serial.println(rawDistance);
+//   distanceTimedOut = sensor.timeoutOccurred();
+//   if (distanceTimedOut) {
+//     //Serial.println("***DISTANCE TIMEOUT OCCURRED***");
+//   }
+// }
 
 void welcomeDisplay() {
   unsigned long now = millis();
@@ -314,7 +431,7 @@ void updateDisplay() {
 
   lcd.print("D: ");
   if(!bypassState && mainlineState || !pumpState) {
-    lcd.print(1.02);
+    lcd.print(lockedDensity, 3);
   } else {
     lcd.print("----");
   }
@@ -350,18 +467,23 @@ void setup() {
   lcd.print("Starting sensor");
 
   Serial.begin(9600);
+  while (!Serial) {};
   Wire.begin();
+  if (!sensor.begin()) {
+    Serial.println("VL53L0X not found");
+    while (true) {}
+  }
   key_board.Setup();
   Serial.println("Keyboard setup done");
 
-  sensor.setTimeout(500);
-  if (!sensor.init()) {
-    lcd.clear();
-    lcd.print("Sensor error");
-    while (true) {}
-  }
+  // sensor.setTimeout(500);
+  // if (!sensor.init()) {
+  //   lcd.clear();
+  //   lcd.print("Sensor error");
+  //   while (true) {}
+  // }
 
-  sensor.startContinuous();
+  // sensor.startContinuous();
 
   lastFlowTime = millis();
   attachInterrupt(digitalPinToInterrupt(flowPin), pulseCounter, FALLING);
@@ -387,8 +509,9 @@ void loop() {
   updateFlow();
   //Serial.println("FLOW UPDATED");
   //Serial.println(targetkg);
-  updateDistance();
+  //updateDistance();
   //Serial.println("DISTANCE UPDATED");
+  //Serial.println(targetkg);
   if(targetkg == 0) {
     welcomeDisplay();
   } else {
