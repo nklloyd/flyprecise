@@ -10,8 +10,8 @@ const int serverPort = 8080;
 
 WiFiServer server(serverPort);
 
-const int unoRxPin = 5; // Feather RX <- level shifter <- Uno A1
-const int unoTxPin = 6; // Not connected yet
+const int unoRxPin = 5; 
+const int unoTxPin = 6; 
 WiFiClient websiteClient;
 char telemetryLine[96];
 size_t telemetryLength = 0;
